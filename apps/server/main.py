@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from .io import EmbedInput, EmbedOutput
-from .model import DiscogsModel
-from .dl import download_from_yt
+from io_models import EmbedInput, EmbedOutput
+from model import DiscogsModel
+from dl import download_from_yt
 
 app = FastAPI()
 model = DiscogsModel(model_path="weights/discogs-effnet-bs64-1.pb")

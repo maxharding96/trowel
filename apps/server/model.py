@@ -5,7 +5,10 @@ class DiscogsModel:
     def __init__(
         self, *, model_path: str, sampleRate: int = 16000, resampleQuality: int = 4
     ):
-        self._model = TensorflowPredictEffnetDiscogs(model_path=model_path)
+        self._model = TensorflowPredictEffnetDiscogs(
+            graphFilename="weights/discogs-effnet-bs64-1.pb",
+            output="PartitionedCall:1",
+        )
         self._sampleRate = sampleRate
         self._resampleQuality = resampleQuality
 

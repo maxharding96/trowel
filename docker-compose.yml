@@ -9,8 +9,8 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - PYTHON_SERVER_URL=http://python-server:8000
-  python-server:
-    build: ./apps/python-server
+      - PYTHON_SERVER_URL=http://server:8000
+  server:
+    build: ./apps/server
     ports:
       - "8000:8000"
