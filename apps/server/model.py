@@ -6,7 +6,7 @@ class DiscogsModel:
         self, *, model_path: str, sampleRate: int = 16000, resampleQuality: int = 4
     ):
         self._model = TensorflowPredictEffnetDiscogs(
-            graphFilename="weights/discogs-effnet-bs64-1.pb",
+            graphFilename=model_path,
             output="PartitionedCall:1",
         )
         self._sampleRate = sampleRate
