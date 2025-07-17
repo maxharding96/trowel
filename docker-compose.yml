@@ -1,0 +1,16 @@
+version: '3'
+services:
+  frontend:
+    build: ./apps/frontend
+    ports:
+      - "3000:3000"
+  backend:
+    build: ./apps/backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PYTHON_SERVER_URL=http://python-server:8000
+  python-server:
+    build: ./apps/python-server
+    ports:
+      - "8000:8000"
