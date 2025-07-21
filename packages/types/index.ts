@@ -1,8 +1,26 @@
 import { z } from "zod"
 
-export const formSchema = z.object({
+// elysia api schema
+
+export const InitiateDigInput = z.object({
   collection: z.string(),
   listings: z.string()
 })
 
-export type FormSchema = z.infer<typeof formSchema>
+export type TInitiateDigInput = z.infer<typeof InitiateDigInput>
+
+// python server schema
+
+export const EmbedInput = z.object({
+  urls: z.string().array()
+})
+
+export type TEmbedInput = z.infer<typeof EmbedInput>
+
+const Embedding = z.float32().array()
+
+export const EmbedOutput = z.object({
+  embeddings: Embedding.array()
+})
+
+export type TEmbedOutput = z.infer<typeof EmbedOutput>

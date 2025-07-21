@@ -1,9 +1,9 @@
-import type { FormSchema } from "@trowel/types"
+import type { TInitiateDigInput } from "@trowel/types"
 import { useEffect } from "react";
 import { useParams } from "react-router";
 
 export default function Dig() {
-  const { collection, listings } = useParams<FormSchema>()
+  const { collection, listings } = useParams<TInitiateDigInput>()
 
   useEffect(() => {
       const fetchData = async () => {

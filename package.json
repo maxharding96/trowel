@@ -2,6 +2,9 @@
   "name": "trowel",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "format": "prettier --write 'apps/**/*.ts'"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -11,5 +14,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "prettier": "3.6.2"
+  }
 }
