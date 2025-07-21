@@ -1,18 +1,15 @@
 import type { TEmbedInput, TEmbedOutput } from '@trowel/types'
 
-export class ServerClient {
-  baseUrl: string
+export abstract class RestClient {
+  protected baseUrl: string
+  protected headers: Record<string, string>
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, headers: Record<string, string>) {
     this.baseUrl = baseUrl
+    this.headers = headers
   }
 
-  async embed(input: TEmbedInput): Promise<TEmbedOutput> {
-    const response = await this.post<TEmbedInput, TEmbedOutput>(input, '/embed')
-    return response
-  }
-
-  private async get<T>(path: string): Promise<T> {
+  protected async get<T>(path: string): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`)
     if (!response.ok) {
       throw new Error(`GET ${path} failed: ${response.status}`)
@@ -20,7 +17,7 @@ export class ServerClient {
     return response.json()
   }
 
-  private async post<I, O>(input: I, path: string): Promise<O> {
+  protected async post<I, O>(path: string, input?: I): Promise<O> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: {
