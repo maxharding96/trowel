@@ -1,7 +1,11 @@
 {
-  "name": "types",
-  "module": "index.ts",
+  "name": "@trowel/types",
   "type": "module",
+  "module": "index.ts",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

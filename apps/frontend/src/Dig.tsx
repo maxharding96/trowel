@@ -1,14 +1,19 @@
-import { useSearchParams } from "react-router"
+import type { FormSchema } from "@trowel/types"
+import { useEffect } from "react";
+import { useParams } from "react-router";
 
+export default function Dig() {
+  const { collection, listings } = useParams<FormSchema>()
 
-function Dig() {
-  const [searchParams] = useSearchParams();
+  useEffect(() => {
+      const fetchData = async () => {
+        const res = await fetch(`http://localhost:3000/dig/${collection}/${listings}`)
+        console.log(await res.text())
+      }
 
-  const collection = searchParams.get("collection");
-  const wantlist = searchParams.get("wantlist");
+      fetchData()
+  }, [collection, listings]);
 
-  console.log("Collection:", collection)
-  console.log("Wantlist:", wantlist);
   return (
     <>
       <h1>Query Component</h1>
@@ -17,5 +22,3 @@ function Dig() {
     </>
   )
 }
-
-export default Dig
