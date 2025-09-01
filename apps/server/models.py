@@ -1,7 +1,8 @@
 from pydantic import BaseModel
+from typing import List, Optional
 
 
-Embedding = list[float]
+Embedding = List[List[float]]
 
 
 class EmbedInput(BaseModel):
@@ -9,4 +10,4 @@ class EmbedInput(BaseModel):
 
 
 class EmbedOutput(BaseModel):
-    embeddings: list[Embedding]
+    embeddings: List[Optional[Embedding]]

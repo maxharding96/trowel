@@ -14,22 +14,31 @@ import { Shovel } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import type { TInitiateDigInput } from '@trowel/types'
-import { InitiateDigInput } from '@trowel/types'
+import type { InitiateDigInput } from '@trowel/types'
+import { InitiateDigInputSchema } from '@trowel/types'
+// import { api } from './api/client'
 
 function App() {
   const navigate = useNavigate()
 
-  const form = useForm<TInitiateDigInput>({
-    resolver: zodResolver(InitiateDigInput),
+  const form = useForm<InitiateDigInput>({
+    resolver: zodResolver(InitiateDigInputSchema),
     defaultValues: {
-      collection: '',
+      wantlist: '',
       listings: '',
     },
   })
 
-  const onSubmit = (data: TInitiateDigInput) => {
-    navigate(`/${data.collection}/${data.listings}`)
+  const onSubmit = async (input: InitiateDigInput) => {
+    // const { data, error } = await api.initiateDig.post({
+    //   wantlist: input.wantlist,
+    //   listings: input.listings,
+    // })
+    // if (error) {
+    //   console.error('Error initiating dig:', error)
+    //   return
+    // }
+    // navigate(`/${data.id}`)
   }
 
   return (
@@ -40,7 +49,7 @@ function App() {
             Trowel
           </h1>
           <p className="mt-2 text-stone-600 text-base">
-            Discover records on Discogs based on your favourite releases
+            Discover records on Discogs based on your wantlist.
           </p>
         </div>
 
@@ -50,21 +59,18 @@ function App() {
               <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="collection"
+                  name="wantlist"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-base">Collection</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter Discogs username"
+                          placeholder="Enter your Discogs username"
                           className="focus:ring-2 focus:ring-stone-400 text-base"
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Discogs username for the collection you want to compare
-                        to.
-                      </FormDescription>
+                      <FormDescription>Your Discogs username.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -77,7 +83,7 @@ function App() {
                       <FormLabel className="text-base">Listings</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter Discogs username"
+                          placeholder="Enter user Discogs username"
                           className="focus:ring-2 focus:ring-stone-400 text-base"
                           {...field}
                         />

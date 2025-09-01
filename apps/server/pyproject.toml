@@ -11,3 +11,6 @@ dependencies = [
     "yt-dlp>=2025.6.30",
     "numpy<2.0",
 ]
+
+[project.scripts]
+dev = "uvicorn main:app --reload"

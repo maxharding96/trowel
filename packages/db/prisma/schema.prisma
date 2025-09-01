@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Discogs models
+
+model Artist {
+  id          String    @id @default(cuid())
+  externalId  Int       @unique
+  name        String
+  resourceUrl String
+  releases    Release[]
+}
+
+model Track {
+  releaseId String
+  release   Release @relation(fields: [releaseId], references: [id])
+  duration  String
+  position  String
+  title     String
+
+  @@id([releaseId, position])
+}
+
+model Video {
+  id          String  @id @default(cuid())
+  releaseId   String
+  release     Release @relation(fields: [releaseId], references: [id])
+  description String?
+  duration    Int
+  embed       Boolean
+  title       String
+  uri         String
+  embedding   Json?
+}
+
+model Release {
+  id           String    @id @default(cuid())
+  externalId   Int       @unique
+  artists      Artist[]
+  thumb        String
+  country      String
+  lowestPrice  Float?
+  numForSale   Int
+  resoucrceUrl String
+  status       String
+  styles       String[]
+  tracklist    Track[]
+  uri          String
+  videos       Video[]
+  year         Int
+  Listing      Listing[]
+}
+
+enum Status {
+  ForSale
+  Draft
+}
+
+enum Currency {
+  USD
+  GBP
+  EUR
+  CAD
+  AUD
+  JPY
+  CHF
+  MXN
+  BRL
+  NZD
+  SEK
+  ZAR
+}
+
+enum Condition {
+  Mint
+  NearMint
+  VeryGoodPlus
+  VeryGood
+  GoodPlus
+  Good
+  Fair
+  Poor
+}
+
+enum SleeveCondition {
+  Mint
+  NearMint
+  VeryGoodPlus
+  VeryGood
+  GoodPlus
+  Good
+  Fair
+  Poor
+  Generic
+  NotGraded
+  NoCover
+}
+
+model Want {
+  id          String @id @default(cuid())
+  externalId  Int    @unique
+  user        String
+  resourceUrl String
+  searchId    String
+  search      Search @relation(fields: [searchId], references: [id])
+}
+
+model Listing {
+  id              String          @id @default(cuid())
+  externalId      Int             @unique
+  user            String
+  status          Status
+  price           Price?
+  allowOffers     Boolean
+  condition       Condition
+  sleeveCondition SleeveCondition
+  shipsFrom       String
+  uri             String
+  comments        String
+  releaseId       String
+  release         Release         @relation(fields: [releaseId], references: [id])
+  resourceUrl     String
+  audio           Boolean
+  searchId        String
+  search          Search          @relation(fields: [searchId], references: [id])
+}
+
+model Price {
+  id        String   @id @default(cuid())
+  amount    Float
+  currency  Currency
+  listingId String   @unique
+  Listing   Listing  @relation(fields: [listingId], references: [id])
+}
+
+// Search models
+
+model Search {
+  id       String    @id @default(cuid())
+  listings Listing[]
+  wantlist Want[]
+}
