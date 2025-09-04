@@ -8,6 +8,8 @@ export abstract class RestClient {
   }
 
   protected async get<T>(path: string): Promise<T> {
+    console.log(`GET ${this.baseUrl}${path}`)
+
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'GET',
       headers: this.headers,

@@ -111,12 +111,14 @@ export const ReleaseSchema = z.object({
 
 export type Release = z.infer<typeof ReleaseSchema>
 
-const Want = z.object({
+const WantSchema = z.object({
   id: z.int(),
   resource_url: z.string(),
 })
 
-const Listing = z.object({
+export type Want = z.infer<typeof WantSchema>
+
+const ListingSchema = z.object({
   id: z.int(),
   status: Status,
   price: Price,
@@ -126,10 +128,12 @@ const Listing = z.object({
   ships_from: z.string(),
   uri: z.string(),
   comments: z.string(),
-  release: PartialRelease,
+  release: ReleaseSchema.or(PartialRelease),
   resource_url: z.string(),
   audio: z.boolean(),
 })
+
+export type Listing = z.infer<typeof ListingSchema>
 
 export const GetWantlistInputSchema = z.object({
   username: z.string(),
@@ -140,7 +144,7 @@ export type GetWantlistInput = z.infer<typeof GetWantlistInputSchema>
 
 export const GetWantlistOutputSchema = z.object({
   pagination: Pagination,
-  wants: Want.array(),
+  wants: WantSchema.array(),
 })
 
 export type GetWantlistOutput = z.infer<typeof GetWantlistOutputSchema>
@@ -154,7 +158,7 @@ export type GetListingsInput = z.infer<typeof GetListingsInputSchema>
 
 export const GetListingsOutputSchema = z.object({
   pagination: Pagination,
-  listings: Listing.array(),
+  listings: ListingSchema.array(),
 })
 
 export type GetListingsOutput = z.infer<typeof GetListingsOutputSchema>
@@ -163,4 +167,4 @@ export const GetReleaseInputSchema = z.object({
   release_id: z.int(),
 })
 
-export type TGetReleaseInput = z.infer<typeof GetReleaseInputSchema>
+export type GetReleaseInput = z.infer<typeof GetReleaseInputSchema>

@@ -1,67 +1,73 @@
 import type {
-  TGetListingsInput,
-  TGetListingsOutput,
-  TGetWantlistInput,
-  TGetWantlistOutput,
-  TGetReleaseInput,
-  TRelease,
+  GetListingsInput,
+  GetListingsOutput,
+  GetWantlistInput,
+  GetWantlistOutput,
+  GetReleaseInput,
+  Release,
 } from '@trowel/types'
-import { Release, GetListingsOutput, GetWantlistOutput } from '@trowel/types'
+import {
+  ReleaseSchema,
+  GetListingsOutputSchema,
+  GetWantlistOutputSchema,
+} from '@trowel/types'
 import { RestClient } from './rest'
-import { awaitJob } from '../queues/discogs'
 
 const BASE_URL = 'https://api.discogs.com'
 const USER_AGENT = 'Trowel/1.0 (+https://trowel.vercel.app/)'
 
 export class DiscogsClient extends RestClient {
-  authParams: string
+  key: string
+  secret: string
 
   constructor({ key, secret }: { key: string; secret: string }) {
     super(BASE_URL, { 'User-Agent': USER_AGENT })
 
-    this.authParams = `key=${key}&secret=${secret}`
+    this.key = key
+    this.secret = secret
   }
 
-  async getRelease(input: TGetReleaseInput): Promise<TRelease> {
-    const path =
-      this.baseUrl + `/releases/${input.release_id}` + '?' + this.authParams
+  async getRelease(input: GetReleaseInput): Promise<Release> {
+    const path = this.getPath(`/releases/${input.release_id}`)
 
-    const unsafeResponse = await awaitJob({ path, headers: this.headers })
-    const response = Release.parse(unsafeResponse)
+    const unsafeResponse = await this.get<Release>(path)
+
+    const response = ReleaseSchema.parse(unsafeResponse)
 
     return response
   }
 
-  async getListings(input: TGetListingsInput): Promise<TGetListingsOutput> {
-    let path =
-      this.baseUrl +
-      `/users/${input.username}/inventory` +
-      '?' +
-      this.authParams
+  async getListings(input: GetListingsInput): Promise<GetListingsOutput> {
+    const path = this.getPath(
+      `/users/${input.username}/inventory`,
+      input.pagination
+    )
 
-    if (input.pagination) {
-      const { page, per_page } = input.pagination
-      path += `&page=${page}&per_page=${per_page}`
-    }
-
-    const unsafeResponse = await awaitJob({ path, headers: this.headers })
-    const response = GetListingsOutput.parse(unsafeResponse)
+    const unsafeResponse = await this.get<GetListingsOutput>(path)
+    const response = GetListingsOutputSchema.parse(unsafeResponse)
 
     return response
   }
 
-  async getWantlist(input: TGetWantlistInput): Promise<TGetWantlistOutput> {
-    let path =
-      this.baseUrl + `/users/${input.username}/wants` + '?' + this.authParams
+  async getWantlist(input: GetWantlistInput): Promise<GetWantlistOutput> {
+    const path = this.getPath(
+      `/users/${input.username}/wants`,
+      input.pagination
+    )
 
-    if (input.pagination) {
-      const { page, per_page } = input.pagination
-      path += `&page=${page}&per_page=${per_page}`
-    }
-
-    const unsafeResponse = await awaitJob({ path, headers: this.headers })
-    const response = GetWantlistOutput.parse(unsafeResponse)
+    const unsafeResponse = await this.get<GetWantlistOutput>(path)
+    const response = GetWantlistOutputSchema.parse(unsafeResponse)
 
     return response
+  }
+
+  private getPath(ext: string, params?: Record<string, string | number>) {
+    const searchParams = new URLSearchParams({
+      key: this.key,
+      secret: this.secret,
+      ...params,
+    })
+
+    return ext + '?' + searchParams.toString()
   }
 }

@@ -1,43 +1,132 @@
-import { Queue, Worker, Job, QueueEvents } from 'bullmq'
+import { connection } from '.'
+import { Queue, Worker } from 'bullmq'
+import { discogs } from '../globals'
+import {
+  GetListingsInputSchema,
+  GetReleaseInputSchema,
+  ReleaseSchema,
+  GetWantlistOutputSchema,
+  GetListingsOutputSchema,
+  GetWantlistInputSchema,
+} from '@trowel/types'
+import type {
+  GetListingsInput,
+  GetWantlistInput,
+  GetReleaseInput,
+} from '@trowel/types'
 import { z } from 'zod'
-import IORedis from 'ioredis'
+import { addEmbeddingJob } from './embedder'
 
-const connection = new IORedis({ maxRetriesPerRequest: null })
+const JobInput = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('get-release'),
+    input: GetReleaseInputSchema,
+  }),
+  z.object({
+    type: z.literal('get-listings'),
+    input: GetListingsInputSchema,
+  }),
+  z.object({
+    type: z.literal('get-wantlist'),
+    input: GetWantlistInputSchema,
+  }),
+])
 
-const ProcessJob = z.object({
-  path: z.string(),
-  headers: z.record(z.string(), z.string()).optional(),
-})
+type JobInput = z.infer<typeof JobInput>
 
-type ProcessJob = z.infer<typeof ProcessJob>
+const JobOutput = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('get-release'),
+    output: ReleaseSchema,
+  }),
+  z.object({
+    type: z.literal('get-listings'),
+    output: GetListingsOutputSchema,
+  }),
+  z.object({
+    type: z.literal('get-wantlist'),
+    output: GetWantlistOutputSchema,
+  }),
+])
 
-type Output = Record<string, any>
+type JobOutput = z.infer<typeof JobOutput>
 
-const queue = new Queue<ProcessJob, Output>('discogs', { connection })
+const NAME = 'discogs'
 
-const queueEvents = new QueueEvents('discogs', { connection })
+const queue = new Queue(NAME, { connection })
 
-const worker = new Worker('discogs', processJob, {
-  connection,
-  limiter: {
-    max: 60, // 60 requests
-    duration: 60000, // per minute
+const worker = new Worker<JobInput, JobOutput>(
+  NAME,
+  async (job) => {
+    switch (job.data.type) {
+      case 'get-release': {
+        const output = await discogs.getRelease(job.data.input)
+        return { type: 'get-release', output }
+      }
+      case 'get-listings': {
+        const output = await discogs.getListings(job.data.input)
+        return { type: 'get-listings', output }
+      }
+      case 'get-wantlist': {
+        const output = await discogs.getWantlist(job.data.input)
+        return { type: 'get-wantlist', output }
+      }
+      default:
+        throw new Error(`Unknown job name: ${job.name}`)
+    }
   },
+  {
+    connection,
+    limiter: {
+      max: 60, // 60 requests
+      duration: 60000, // per minute
+    },
+  }
+)
+
+worker.on('completed', async (_, data) => {
+  console.log('Job completed with data:', data.type)
+
+  switch (data.type) {
+    case 'get-release': {
+      const urls = data.output.videos.map((video) => video.uri)
+
+      console.log('Got release with urls:', urls.length)
+
+      //TODO create releases
+
+      void addEmbeddingJob({ urls })
+
+      break
+    }
+    case 'get-listings': {
+      const { listings } = data.output
+
+      for (const listing of listings.slice(0, 1)) {
+        void addGetReleaseJob({ release_id: listing.release.id })
+      }
+
+      break
+    }
+
+    case 'get-wantlist': {
+      const { wants } = data.output
+
+      for (const want of wants.slice(0, 1)) {
+        void addGetReleaseJob({ release_id: want.id })
+      }
+
+      break
+    }
+  }
 })
 
-async function processJob(job: Job<ProcessJob>): Promise<Output> {
-  const { path } = job.data
+worker.on('failed', (job, err) => {
+  console.error(`Job ${job?.data.type} has failed with error: ${err.message}`)
+})
 
-  const response = await fetch(path)
-  if (!response.ok) {
-    throw new Error(`GET ${path} failed: ${response.status}`)
-  }
-
-  return response.json()
-}
-
-export async function addJob<T>(data: ProcessJob) {
-  const job = await queue.add('discogs', data, {
+async function addJob(input: JobInput) {
+  const job = await queue.add('api-request', input, {
     attempts: 3,
     backoff: { type: 'exponential', delay: 2000 },
   })
@@ -45,9 +134,23 @@ export async function addJob<T>(data: ProcessJob) {
   return job
 }
 
-export async function awaitJob(data: ProcessJob): Promise<Output> {
-  const job = await addJob(data)
+export function addGetReleaseJob(input: GetReleaseInput) {
+  return addJob({
+    type: 'get-release',
+    input,
+  })
+}
 
-  const response = await job.waitUntilFinished(queueEvents)
-  return response
+export function addGetWantlistJob(input: GetWantlistInput) {
+  return addJob({
+    type: 'get-wantlist',
+    input,
+  })
+}
+
+export function addGetListingsJob(input: GetListingsInput) {
+  return addJob({
+    type: 'get-listings',
+    input,
+  })
 }

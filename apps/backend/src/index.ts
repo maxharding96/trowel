@@ -1,20 +1,20 @@
 import { Elysia, t } from 'elysia'
 import { cors } from '@elysiajs/cors'
-import { addProcessJob } from './queues'
 import { searchRepositry } from '@trowel/db'
+import { addGetListingsJob, addGetWantlistJob } from './queues/discogs'
 
 const app = new Elysia()
   .use(cors())
   .post(
     '/initiateDig',
     async ({ body }) => {
-      const search = await searchRepositry.create({ id: 'test-id' })
+      await addGetListingsJob({ username: body.listings })
+
+      await addGetWantlistJob({ username: body.wantlist })
+
+      const search = await searchRepositry.create()
 
       return search
-
-      // const job = await addProcessJob(params)
-
-      // console.log('Job added:', job.id)
     },
     {
       body: t.Object({
@@ -23,6 +23,16 @@ const app = new Elysia()
       }),
     }
   )
+  .get('/wantlist/:searchId', async ({ params }) => {
+    const wantlist = await searchRepositry.getWantlist(params.searchId)
+
+    return wantlist
+  })
+  .get('/listings/:searchId', async ({ params }) => {
+    const listings = await searchRepositry.getListings(params.searchId)
+
+    return listings
+  })
   .listen(3000)
 
 export type App = typeof app

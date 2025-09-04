@@ -1,4 +1,4 @@
-import { DiscogsClient, ServerClient } from './clients'
+import { DiscogsClient, EmbedderClient } from './clients'
 
 //! DO NOT COMMIT
 const DISCOGS_KEY = 'oRXQpXiCrfgljmEEnaPL'
@@ -11,4 +11,4 @@ export const discogs = new DiscogsClient({
 
 const SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://localhost:8000'
 
-export const server = new ServerClient(SERVER_BASE_URL)
+export const embedder = new EmbedderClient(SERVER_BASE_URL)

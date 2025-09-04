@@ -62,6 +62,7 @@ model Release {
   videos       Video[]
   year         Int
   Listing      Listing[]
+  Want         Want[]
 }
 
 enum Status {
@@ -110,12 +111,14 @@ enum SleeveCondition {
 }
 
 model Want {
-  id          String @id @default(cuid())
-  externalId  Int    @unique
+  id          String  @id @default(cuid())
+  externalId  Int     @unique
   user        String
   resourceUrl String
+  releaseId   String
+  release     Release @relation(fields: [releaseId], references: [id])
   searchId    String
-  search      Search @relation(fields: [searchId], references: [id])
+  search      Search  @relation(fields: [searchId], references: [id])
 }
 
 model Listing {

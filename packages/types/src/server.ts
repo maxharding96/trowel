@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const EmbedInputSchema = z.object({
-  urls: z.string().array(),
+  urls: z.string().optional().array(),
 })
 
 export type EmbedInput = z.infer<typeof EmbedInputSchema>

@@ -19,7 +19,7 @@ def download(url: str) -> Optional[str]:
     with yt_dlp.YoutubeDL(ydl_opt) as ydl:
         try:
             info = ydl.extract_info(url, download=True)
-            return info.filename
+            return "tmp/" + info["id"] + "." + info["ext"]
         except Exception as e:
             print(f"Error downloading {url}: {e}")
 

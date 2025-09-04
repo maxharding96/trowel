@@ -1,11 +1,38 @@
 import prisma from '../client'
 
 export const searchRepositry = {
-  create: ({ id }: { id: string }) => {
-    return prisma.search.create({
-      data: {
-        id,
+  create: () =>
+    prisma.search.create({
+      data: {},
+    }),
+  getListings: (searchId: string) =>
+    prisma.listing.findMany({
+      where: { searchId },
+      include: {
+        release: {
+          select: {
+            videos: {
+              select: {
+                embedding: true,
+              },
+            },
+          },
+        },
       },
-    })
-  },
+    }),
+  getWantlist: (searchId: string) =>
+    prisma.want.findMany({
+      where: { searchId },
+      include: {
+        release: {
+          select: {
+            videos: {
+              select: {
+                embedding: true,
+              },
+            },
+          },
+        },
+      },
+    }),
 }

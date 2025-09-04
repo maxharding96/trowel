@@ -16,7 +16,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import type { InitiateDigInput } from '@trowel/types'
 import { InitiateDigInputSchema } from '@trowel/types'
-// import { api } from './api/client'
+import { api } from './api/client'
 
 function App() {
   const navigate = useNavigate()
@@ -30,15 +30,15 @@ function App() {
   })
 
   const onSubmit = async (input: InitiateDigInput) => {
-    // const { data, error } = await api.initiateDig.post({
-    //   wantlist: input.wantlist,
-    //   listings: input.listings,
-    // })
-    // if (error) {
-    //   console.error('Error initiating dig:', error)
-    //   return
-    // }
-    // navigate(`/${data.id}`)
+    const { data, error } = await api.initiateDig.post({
+      wantlist: input.wantlist,
+      listings: input.listings,
+    })
+    if (error) {
+      console.error('Error initiating dig:', error)
+      return
+    }
+    navigate(`/${data.id}`)
   }
 
   return (
@@ -62,10 +62,10 @@ function App() {
                   name="wantlist"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base">Collection</FormLabel>
+                      <FormLabel className="text-base">Wantlist</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter your Discogs username"
+                          placeholder="Enter Discogs username"
                           className="focus:ring-2 focus:ring-stone-400 text-base"
                           {...field}
                         />
@@ -83,7 +83,7 @@ function App() {
                       <FormLabel className="text-base">Listings</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter user Discogs username"
+                          placeholder="Enter Discogs username"
                           className="focus:ring-2 focus:ring-stone-400 text-base"
                           {...field}
                         />
@@ -109,13 +109,6 @@ function App() {
             </Card>
           </form>
         </Form>
-
-        <div className="text-center text-sm text-stone-500">
-          <p>
-            Trowel helps you discover records in Discogs listings based on
-            users' collections.
-          </p>
-        </div>
       </div>
     </div>
   )
