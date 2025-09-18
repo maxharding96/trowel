@@ -6,13 +6,12 @@ import { addGetListingsJob, addGetWantlistJob } from './queues/discogs'
 const app = new Elysia()
   .use(cors())
   .post(
-    '/initiateDig',
+    '/initiate',
     async ({ body }) => {
-      await addGetListingsJob({ username: body.listings })
-
-      await addGetWantlistJob({ username: body.wantlist })
-
       const search = await searchRepositry.create()
+
+      await addGetListingsJob(search.id, body.listings)
+      await addGetWantlistJob(search.id, body.wantlist)
 
       return search
     },
@@ -23,16 +22,19 @@ const app = new Elysia()
       }),
     }
   )
+
   .get('/wantlist/:searchId', async ({ params }) => {
     const wantlist = await searchRepositry.getWantlist(params.searchId)
 
     return wantlist
   })
+
   .get('/listings/:searchId', async ({ params }) => {
     const listings = await searchRepositry.getListings(params.searchId)
 
     return listings
   })
+
   .listen(3000)
 
 export type App = typeof app

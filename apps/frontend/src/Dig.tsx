@@ -1,27 +1,27 @@
-import { useMemo } from 'react'
+import { useEffect } from 'react'
 import { api } from './api/client'
 import { useParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 
 export default function Dig() {
   const { searchId } = useParams<{ searchId: string }>()
 
+  const fetch = async () => {
+    if (!searchId) return
+
+    const { data: wantlist } = await api.wantlist({ searchId }).get()
+    const { data: listings } = await api.listings({ searchId }).get()
+
+    return { wantlist, listings }
+  }
+
+  useEffect(() => {
+    fetch()
+  })
+
   if (!searchId) {
     return null
   }
-
-  const { data: wantlist, error } = await api.listings({ searchId }).get({})
-
-  const listings = await api.wantlist({ searchId }).get()
-
-  const embeddedWantlist = useMemo(() => {
-    if (error) {
-      return []
-    }
-
-    return wantlist.filter((want) =>
-      want.release.videos.forEach((video) => !!video.embedding)
-    )
-  }, [wantlist, error])
 
   return (
     <>

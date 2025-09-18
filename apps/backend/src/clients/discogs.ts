@@ -28,7 +28,7 @@ export class DiscogsClient extends RestClient {
   }
 
   async getRelease(input: GetReleaseInput): Promise<Release> {
-    const path = this.getPath(`/releases/${input.release_id}`)
+    const path = this.getPath(`/releases/${input.releaseId}`)
 
     const unsafeResponse = await this.get<Release>(path)
 

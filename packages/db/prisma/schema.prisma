@@ -34,6 +34,12 @@ model Track {
   @@id([releaseId, position])
 }
 
+enum EmbeddingStatus {
+  pending
+  success
+  failed
+}
+
 model Video {
   id          String  @id @default(cuid())
   releaseId   String
@@ -47,22 +53,28 @@ model Video {
 }
 
 model Release {
-  id           String    @id @default(cuid())
-  externalId   Int       @unique
-  artists      Artist[]
-  thumb        String
-  country      String
-  lowestPrice  Float?
-  numForSale   Int
-  resoucrceUrl String
-  status       String
-  styles       String[]
-  tracklist    Track[]
-  uri          String
-  videos       Video[]
-  year         Int
-  Listing      Listing[]
-  Want         Want[]
+  id              String          @id @default(cuid())
+  externalId      Int             @unique
+  title           String
+  artists         Artist[]
+  thumb           String
+  country         String
+  genres          String[]
+  lowestPrice     Float?
+  numForSale      Int
+  resourceUrl     String
+  status          String
+  styles          String[]
+  tracklist       Track[]
+  uri             String
+  videos          Video[]
+  year            Int
+  embeddingStatus EmbeddingStatus @default(pending)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Want      Want[]
+  Listing   Listing[]
 }
 
 enum Status {
@@ -110,37 +122,6 @@ enum SleeveCondition {
   NoCover
 }
 
-model Want {
-  id          String  @id @default(cuid())
-  externalId  Int     @unique
-  user        String
-  resourceUrl String
-  releaseId   String
-  release     Release @relation(fields: [releaseId], references: [id])
-  searchId    String
-  search      Search  @relation(fields: [searchId], references: [id])
-}
-
-model Listing {
-  id              String          @id @default(cuid())
-  externalId      Int             @unique
-  user            String
-  status          Status
-  price           Price?
-  allowOffers     Boolean
-  condition       Condition
-  sleeveCondition SleeveCondition
-  shipsFrom       String
-  uri             String
-  comments        String
-  releaseId       String
-  release         Release         @relation(fields: [releaseId], references: [id])
-  resourceUrl     String
-  audio           Boolean
-  searchId        String
-  search          Search          @relation(fields: [searchId], references: [id])
-}
-
 model Price {
   id        String   @id @default(cuid())
   amount    Float
@@ -149,10 +130,36 @@ model Price {
   Listing   Listing  @relation(fields: [listingId], references: [id])
 }
 
-// Search models
+model Want {
+  id          String   @id @default(cuid())
+  externalId  Int      @unique
+  resourceUrl String
+  releaseId   String?
+  release     Release? @relation(fields: [releaseId], references: [id])
+  searchId    String
+  search      Search   @relation(fields: [searchId], references: [id])
+}
+
+model Listing {
+  id              String          @id @default(cuid())
+  externalId      Int             @unique
+  status          Status
+  price           Price?
+  allowOffers     Boolean
+  condition       Condition
+  sleeveCondition SleeveCondition
+  shipsFrom       String
+  uri             String
+  comments        String
+  releaseId       String?
+  release         Release?        @relation(fields: [releaseId], references: [id])
+  resourceUrl     String
+  searchId        String
+  search          Search          @relation(fields: [searchId], references: [id])
+}
 
 model Search {
   id       String    @id @default(cuid())
-  listings Listing[]
   wantlist Want[]
+  listings Listing[]
 }

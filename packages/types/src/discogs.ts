@@ -12,7 +12,9 @@ const Pagination = z.object({
   items: z.int(),
 })
 
-const Status = z.enum(['For Sale', 'Draft'])
+const StatusSchema = z.enum(['For Sale', 'Draft'])
+
+export type Status = z.infer<typeof StatusSchema>
 
 const Currency = z.enum([
   'USD',
@@ -29,12 +31,14 @@ const Currency = z.enum([
   'ZAR',
 ])
 
-const Price = z.object({
+const PriceSchema = z.object({
   currency: Currency,
   value: z.number(),
 })
 
-const Condition = z.enum([
+export type Price = z.infer<typeof PriceSchema>
+
+const ConditionSchema = z.enum([
   'Mint (M)',
   'Near Mint (NM or M-)',
   'Very Good Plus (VG+)',
@@ -45,7 +49,9 @@ const Condition = z.enum([
   'Poor (P)',
 ])
 
-const SleeveCondition = z.enum([
+export type Condition = z.infer<typeof ConditionSchema>
+
+const SleeveConditionSchema = z.enum([
   'Mint (M)',
   'Near Mint (NM or M-)',
   'Very Good Plus (VG+)',
@@ -58,6 +64,8 @@ const SleeveCondition = z.enum([
   'Not Graded',
   'No Cover',
 ])
+
+export type SleeveCondition = z.infer<typeof SleeveConditionSchema>
 
 const Artist = z.object({
   id: z.int(),
@@ -79,7 +87,7 @@ const Video = z.object({
   uri: z.string(),
 })
 
-const PartialRelease = z.object({
+const PartialReleaseSchema = z.object({
   catalog_number: z.string(),
   resource_url: z.string(),
   year: z.number(),
@@ -92,8 +100,8 @@ const PartialRelease = z.object({
 })
 
 export const ReleaseSchema = z.object({
-  title: z.string(),
   id: z.int(),
+  title: z.string(),
   artists: Artist.array(),
   thumb: z.string(),
   country: z.string(),
@@ -111,24 +119,29 @@ export const ReleaseSchema = z.object({
 
 export type Release = z.infer<typeof ReleaseSchema>
 
-const WantSchema = z.object({
+export const WantSchema = z.object({
   id: z.int(),
   resource_url: z.string(),
+  // release information
+  basic_information: z.object({
+    resource_url: z.string(),
+    id: z.int(),
+  }),
 })
 
 export type Want = z.infer<typeof WantSchema>
 
-const ListingSchema = z.object({
+export const ListingSchema = z.object({
   id: z.int(),
-  status: Status,
-  price: Price,
+  status: StatusSchema,
+  price: PriceSchema,
   allow_offers: z.boolean(),
-  condition: Condition,
-  sleeve_condition: SleeveCondition,
+  condition: ConditionSchema,
+  sleeve_condition: SleeveConditionSchema,
   ships_from: z.string(),
   uri: z.string(),
   comments: z.string(),
-  release: ReleaseSchema.or(PartialRelease),
+  release: PartialReleaseSchema,
   resource_url: z.string(),
   audio: z.boolean(),
 })
@@ -164,7 +177,7 @@ export const GetListingsOutputSchema = z.object({
 export type GetListingsOutput = z.infer<typeof GetListingsOutputSchema>
 
 export const GetReleaseInputSchema = z.object({
-  release_id: z.int(),
+  releaseId: z.int(),
 })
 
 export type GetReleaseInput = z.infer<typeof GetReleaseInputSchema>

@@ -1,10 +1,21 @@
 import prisma from '../client'
-import type { Listing, Release } from '@trowel/types'
-import { toStatusDB, toConditionDB, toSleeveConditionDB } from '../mapper'
+import type { Release, Want } from '@trowel/types'
 
-export const listingRepositry = {
+export const wantRepositry = {
+  createMany({ searchId, wants }: { searchId: string; wants: Want[] }) {
+    return prisma.want.createManyAndReturn({
+      data: wants.map((want) => ({
+        externalId: want.id,
+        resourceUrl: want.resource_url,
+        searchId,
+      })),
+      select: { id: true },
+      skipDuplicates: true,
+    })
+  },
+
   async addRelease({ id, release }: { id: string; release: Release }) {
-    const listing = await prisma.want.update({
+    const want = await prisma.want.update({
       where: { id },
       data: {
         release: {
@@ -47,49 +58,21 @@ export const listingRepositry = {
       },
     })
 
-    if (!listing.release) {
-      throw new Error('Failed to add release to listing')
+    if (!want.release) {
+      throw new Error('Failed to add release to want')
     }
 
-    return listing.release
+    return want.release
   },
 
   connectRelease({ id, releaseId }: { id: string; releaseId: string }) {
-    return prisma.listing.update({
+    return prisma.want.update({
       where: { id },
       data: {
         release: {
           connect: { id: releaseId },
         },
       },
-    })
-  },
-
-  createMany({
-    searchId,
-    listings,
-  }: {
-    searchId: string
-    listings: Listing[]
-  }) {
-    return prisma.listing.createManyAndReturn({
-      data: listings.map((listing) => ({
-        externalId: listing.id,
-        status: toStatusDB(listing.status),
-        price: listing.price,
-        allowOffers: listing.allow_offers,
-        condition: toConditionDB(listing.condition),
-        sleeveCondition: toSleeveConditionDB(listing.sleeve_condition),
-        shipsFrom: listing.ships_from,
-        comments: listing.comments,
-        uri: listing.uri,
-        resourceUrl: listing.resource_url,
-        searchId,
-      })),
-      select: {
-        id: true,
-      },
-      skipDuplicates: true,
     })
   },
 }

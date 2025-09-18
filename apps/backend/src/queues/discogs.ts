@@ -1,34 +1,32 @@
 import { connection } from '.'
 import { Queue, Worker } from 'bullmq'
 import { discogs } from '../globals'
-import {
-  GetListingsInputSchema,
-  GetReleaseInputSchema,
-  ReleaseSchema,
-  GetWantlistOutputSchema,
-  GetListingsOutputSchema,
-  GetWantlistInputSchema,
-} from '@trowel/types'
-import type {
-  GetListingsInput,
-  GetWantlistInput,
-  GetReleaseInput,
-} from '@trowel/types'
+import { ReleaseSchema, ListingSchema, WantSchema } from '@trowel/types'
 import { z } from 'zod'
 import { addEmbeddingJob } from './embedder'
+import { releaseRepositry, listingRepositry, wantRepositry } from '@trowel/db'
+import { zip } from '../utils/common'
 
 const JobInput = z.discriminatedUnion('type', [
   z.object({
-    type: z.literal('get-release'),
-    input: GetReleaseInputSchema,
+    type: z.literal('get-listing-release'),
+    releaseId: z.number(),
+    listingId: z.string(),
+  }),
+  z.object({
+    type: z.literal('get-wantlist-release'),
+    releaseId: z.number(),
+    wantId: z.string(),
   }),
   z.object({
     type: z.literal('get-listings'),
-    input: GetListingsInputSchema,
+    searchId: z.string(),
+    username: z.string(),
   }),
   z.object({
     type: z.literal('get-wantlist'),
-    input: GetWantlistInputSchema,
+    searchId: z.string(),
+    username: z.string(),
   }),
 ])
 
@@ -36,16 +34,24 @@ type JobInput = z.infer<typeof JobInput>
 
 const JobOutput = z.discriminatedUnion('type', [
   z.object({
-    type: z.literal('get-release'),
-    output: ReleaseSchema,
+    type: z.literal('get-listing-release'),
+    release: ReleaseSchema,
+    listingId: z.string(),
+  }),
+  z.object({
+    type: z.literal('get-wantlist-release'),
+    release: ReleaseSchema,
+    wantId: z.string(),
   }),
   z.object({
     type: z.literal('get-listings'),
-    output: GetListingsOutputSchema,
+    searchId: z.string(),
+    listings: ListingSchema.array(),
   }),
   z.object({
     type: z.literal('get-wantlist'),
-    output: GetWantlistOutputSchema,
+    searchId: z.string(),
+    wants: WantSchema.array(),
   }),
 ])
 
@@ -57,22 +63,42 @@ const queue = new Queue(NAME, { connection })
 
 const worker = new Worker<JobInput, JobOutput>(
   NAME,
-  async (job) => {
-    switch (job.data.type) {
-      case 'get-release': {
-        const output = await discogs.getRelease(job.data.input)
-        return { type: 'get-release', output }
+  async ({ data }) => {
+    switch (data.type) {
+      case 'get-listing-release': {
+        const { listingId, releaseId } = data
+
+        const release = await discogs.getRelease({
+          releaseId,
+        })
+        return { type: 'get-listing-release', listingId, release }
+      }
+      case 'get-wantlist-release': {
+        const { wantId, releaseId } = data
+
+        const release = await discogs.getRelease({
+          releaseId,
+        })
+        return { type: 'get-wantlist-release', wantId, release }
       }
       case 'get-listings': {
-        const output = await discogs.getListings(job.data.input)
-        return { type: 'get-listings', output }
+        const { searchId, username } = data
+
+        const { listings } = await discogs.getListings({
+          username,
+        })
+        return { type: 'get-listings', searchId, listings }
       }
       case 'get-wantlist': {
-        const output = await discogs.getWantlist(job.data.input)
-        return { type: 'get-wantlist', output }
+        const { searchId, username } = data
+
+        const { wants } = await discogs.getWantlist({
+          username,
+        })
+        return { type: 'get-wantlist', searchId, wants }
       }
       default:
-        throw new Error(`Unknown job name: ${job.name}`)
+        throw new Error(`Unknown job data type: ${data}`)
     }
   },
   {
@@ -84,38 +110,98 @@ const worker = new Worker<JobInput, JobOutput>(
   }
 )
 
-worker.on('completed', async (_, data) => {
-  console.log('Job completed with data:', data.type)
+worker.on('completed', async (_, output) => {
+  switch (output.type) {
+    case 'get-listing-release': {
+      const { listingId, release } = output
 
-  switch (data.type) {
-    case 'get-release': {
-      const urls = data.output.videos.map((video) => video.uri)
+      const releaseDB = await listingRepositry.addRelease({
+        id: listingId,
+        release,
+      })
 
-      console.log('Got release with urls:', urls.length)
+      await addEmbeddingJob({
+        releaseId: releaseDB.id,
+        videos: releaseDB.videos,
+      })
 
-      //TODO create releases
+      break
+    }
+    case 'get-wantlist-release': {
+      const { wantId, release } = output
 
-      void addEmbeddingJob({ urls })
+      const releaseDB = await wantRepositry.addRelease({ id: wantId, release })
+
+      await addEmbeddingJob({
+        releaseId: releaseDB.id,
+        videos: releaseDB.videos,
+      })
 
       break
     }
     case 'get-listings': {
-      const { listings } = data.output
+      const { searchId, listings } = output
 
-      for (const listing of listings.slice(0, 1)) {
-        void addGetReleaseJob({ release_id: listing.release.id })
+      const listingsDB = await listingRepositry.createMany({
+        searchId,
+        listings,
+      })
+
+      for (const [listing, listingDB] of zip(listings, listingsDB)) {
+        const releaseId = listing.release.id
+
+        const release =
+          await releaseRepositry.getReleaseForExternalId(releaseId)
+
+        if (!release) {
+          await addGetListingReleaseJob(listingDB.id, releaseId)
+        } else {
+          await listingRepositry.connectRelease({
+            id: listingDB.id,
+            releaseId: release.id,
+          })
+
+          if (release.embeddingStatus === 'failed') {
+            await addEmbeddingJob({
+              releaseId: release.id,
+              videos: release.videos,
+            })
+          }
+        }
       }
-
       break
     }
 
     case 'get-wantlist': {
-      const { wants } = data.output
+      const { searchId, wants } = output
 
-      for (const want of wants.slice(0, 1)) {
-        void addGetReleaseJob({ release_id: want.id })
+      const wantsDB = await wantRepositry.createMany({
+        searchId,
+        wants,
+      })
+
+      for (const [want, wantDB] of zip(wants, wantsDB)) {
+        const releaseId = want.basic_information.id
+
+        const release =
+          await releaseRepositry.getReleaseForExternalId(releaseId)
+
+        if (!release) {
+          await addGetWantReleaseJob(wantDB.id, releaseId)
+        } else {
+          await wantRepositry.connectRelease({
+            id: wantDB.id,
+            releaseId: release.id,
+          })
+
+          if (release.embeddingStatus === 'failed') {
+            await addEmbeddingJob({
+              releaseId: release.id,
+              videos: release.videos,
+            })
+          }
+        }
       }
-
       break
     }
   }
@@ -134,23 +220,34 @@ async function addJob(input: JobInput) {
   return job
 }
 
-export function addGetReleaseJob(input: GetReleaseInput) {
+export function addGetListingReleaseJob(listingId: string, releaseId: number) {
   return addJob({
-    type: 'get-release',
-    input,
+    type: 'get-listing-release',
+    listingId,
+    releaseId,
   })
 }
 
-export function addGetWantlistJob(input: GetWantlistInput) {
+export function addGetWantReleaseJob(wantId: string, releaseId: number) {
+  return addJob({
+    type: 'get-wantlist-release',
+    wantId,
+    releaseId,
+  })
+}
+
+export function addGetWantlistJob(searchId: string, username: string) {
   return addJob({
     type: 'get-wantlist',
-    input,
+    searchId,
+    username,
   })
 }
 
-export function addGetListingsJob(input: GetListingsInput) {
+export function addGetListingsJob(searchId: string, username: string) {
   return addJob({
     type: 'get-listings',
-    input,
+    searchId,
+    username,
   })
 }

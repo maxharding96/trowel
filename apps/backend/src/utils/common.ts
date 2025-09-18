@@ -1,10 +1,4 @@
-/**
- * Compute the cosine similarity between two embedding vectors.
- * @param vecA - First embedding vector
- * @param vecB - Second embedding vector
- * @returns Cosine similarity value between -1 and 1
- */
-function cosineSimilarity(vecA: number[], vecB: number[]): number {
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (vecA.length !== vecB.length) {
     throw new Error('Vectors must be of the same length')
   }
@@ -25,4 +19,15 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (magnitudeA === 0 || magnitudeB === 0) return 0 // Avoid division by zero
 
   return dotProduct / (magnitudeA * magnitudeB)
+}
+
+export function zip<X, Y>(arrayX: X[], arrayY: Y[]): [X, Y][] {
+  const minLength = Math.min(arrayX.length, arrayY.length)
+  const result: [X, Y][] = []
+
+  for (let i = 0; i < minLength; i++) {
+    result.push([arrayX[i]!, arrayY[i]!])
+  }
+
+  return result
 }

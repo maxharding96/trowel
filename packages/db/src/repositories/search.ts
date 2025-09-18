@@ -5,6 +5,7 @@ export const searchRepositry = {
     prisma.search.create({
       data: {},
     }),
+
   getListings: (searchId: string) =>
     prisma.listing.findMany({
       where: { searchId },
@@ -20,6 +21,7 @@ export const searchRepositry = {
         },
       },
     }),
+
   getWantlist: (searchId: string) =>
     prisma.want.findMany({
       where: { searchId },

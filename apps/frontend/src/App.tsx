@@ -30,14 +30,13 @@ function App() {
   })
 
   const onSubmit = async (input: InitiateDigInput) => {
-    const { data, error } = await api.initiateDig.post({
-      wantlist: input.wantlist,
-      listings: input.listings,
-    })
+    const { data, error } = await api.initiate.post(input)
+
     if (error) {
       console.error('Error initiating dig:', error)
       return
     }
+
     navigate(`/${data.id}`)
   }
 

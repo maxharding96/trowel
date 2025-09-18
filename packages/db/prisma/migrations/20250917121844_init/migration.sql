@@ -1,5 +1,5 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
+-- CreateEnum
+CREATE TYPE "public"."EmbeddingStatus" AS ENUM ('pending', 'success', 'failed');
 
 -- CreateEnum
 CREATE TYPE "public"."Status" AS ENUM ('ForSale', 'Draft');
@@ -51,48 +51,22 @@ CREATE TABLE "public"."Video" (
 CREATE TABLE "public"."Release" (
     "id" TEXT NOT NULL,
     "externalId" INTEGER NOT NULL,
+    "title" TEXT NOT NULL,
     "thumb" TEXT NOT NULL,
     "country" TEXT NOT NULL,
+    "genres" TEXT[],
     "lowestPrice" DOUBLE PRECISION,
     "numForSale" INTEGER NOT NULL,
-    "resoucrceUrl" TEXT NOT NULL,
+    "resourceUrl" TEXT NOT NULL,
     "status" TEXT NOT NULL,
     "styles" TEXT[],
     "uri" TEXT NOT NULL,
     "year" INTEGER NOT NULL,
+    "embeddingStatus" "public"."EmbeddingStatus" NOT NULL DEFAULT 'pending',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Release_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Want" (
-    "id" TEXT NOT NULL,
-    "externalId" INTEGER NOT NULL,
-    "user" TEXT NOT NULL,
-    "resourceUrl" TEXT NOT NULL,
-    "searchId" TEXT NOT NULL,
-
-    CONSTRAINT "Want_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Listing" (
-    "id" TEXT NOT NULL,
-    "externalId" INTEGER NOT NULL,
-    "user" TEXT NOT NULL,
-    "status" "public"."Status" NOT NULL,
-    "allowOffers" BOOLEAN NOT NULL,
-    "condition" "public"."Condition" NOT NULL,
-    "sleeveCondition" "public"."SleeveCondition" NOT NULL,
-    "shipsFrom" TEXT NOT NULL,
-    "uri" TEXT NOT NULL,
-    "comments" TEXT NOT NULL,
-    "releaseId" TEXT NOT NULL,
-    "resourceUrl" TEXT NOT NULL,
-    "audio" BOOLEAN NOT NULL,
-    "searchId" TEXT NOT NULL,
-
-    CONSTRAINT "Listing_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -103,6 +77,35 @@ CREATE TABLE "public"."Price" (
     "listingId" TEXT NOT NULL,
 
     CONSTRAINT "Price_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Want" (
+    "id" TEXT NOT NULL,
+    "externalId" INTEGER NOT NULL,
+    "resourceUrl" TEXT NOT NULL,
+    "releaseId" TEXT,
+    "searchId" TEXT NOT NULL,
+
+    CONSTRAINT "Want_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Listing" (
+    "id" TEXT NOT NULL,
+    "externalId" INTEGER NOT NULL,
+    "status" "public"."Status" NOT NULL,
+    "allowOffers" BOOLEAN NOT NULL,
+    "condition" "public"."Condition" NOT NULL,
+    "sleeveCondition" "public"."SleeveCondition" NOT NULL,
+    "shipsFrom" TEXT NOT NULL,
+    "uri" TEXT NOT NULL,
+    "comments" TEXT NOT NULL,
+    "releaseId" TEXT,
+    "resourceUrl" TEXT NOT NULL,
+    "searchId" TEXT NOT NULL,
+
+    CONSTRAINT "Listing_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -127,13 +130,13 @@ CREATE UNIQUE INDEX "Artist_externalId_key" ON "public"."Artist"("externalId");
 CREATE UNIQUE INDEX "Release_externalId_key" ON "public"."Release"("externalId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Price_listingId_key" ON "public"."Price"("listingId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Want_externalId_key" ON "public"."Want"("externalId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Listing_externalId_key" ON "public"."Listing"("externalId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Price_listingId_key" ON "public"."Price"("listingId");
 
 -- CreateIndex
 CREATE INDEX "_ArtistToRelease_B_index" ON "public"."_ArtistToRelease"("B");
@@ -145,20 +148,22 @@ ALTER TABLE "public"."Track" ADD CONSTRAINT "Track_releaseId_fkey" FOREIGN KEY (
 ALTER TABLE "public"."Video" ADD CONSTRAINT "Video_releaseId_fkey" FOREIGN KEY ("releaseId") REFERENCES "public"."Release"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Price" ADD CONSTRAINT "Price_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "public"."Listing"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Want" ADD CONSTRAINT "Want_releaseId_fkey" FOREIGN KEY ("releaseId") REFERENCES "public"."Release"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Want" ADD CONSTRAINT "Want_searchId_fkey" FOREIGN KEY ("searchId") REFERENCES "public"."Search"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Listing" ADD CONSTRAINT "Listing_releaseId_fkey" FOREIGN KEY ("releaseId") REFERENCES "public"."Release"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Listing" ADD CONSTRAINT "Listing_releaseId_fkey" FOREIGN KEY ("releaseId") REFERENCES "public"."Release"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Listing" ADD CONSTRAINT "Listing_searchId_fkey" FOREIGN KEY ("searchId") REFERENCES "public"."Search"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Price" ADD CONSTRAINT "Price_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "public"."Listing"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."_ArtistToRelease" ADD CONSTRAINT "_ArtistToRelease_A_fkey" FOREIGN KEY ("A") REFERENCES "public"."Artist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."_ArtistToRelease" ADD CONSTRAINT "_ArtistToRelease_B_fkey" FOREIGN KEY ("B") REFERENCES "public"."Release"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
