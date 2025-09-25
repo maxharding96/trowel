@@ -1,13 +1,15 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 
 
-Embedding = List[List[float]]
+Embedding = List[float]
 
 
 class EmbedInput(BaseModel):
-    urls: list[str]
+    id: str
+    uri: str
 
 
 class EmbedOutput(BaseModel):
-    embeddings: List[Optional[Embedding]]
+    id: str
+    embedding: Embedding

@@ -1,9 +1,15 @@
 import type { Release } from '@trowel/types'
 import prisma from '../client'
-import type { Embedding } from '@trowel/types'
 
 export const releaseRepositry = {
-  getReleaseForExternalId(externalId: number) {
+  getOrThrow(id: string) {
+    return prisma.release.findUniqueOrThrow({
+      where: { id },
+      include: { videos: true },
+    })
+  },
+
+  getForExternalId(externalId: number) {
     return prisma.release.findUnique({
       where: { externalId },
       include: { videos: true },
@@ -43,39 +49,6 @@ export const releaseRepositry = {
       update: {
         lowestPrice: release.lowest_price,
         numForSale: release.num_for_sale,
-      },
-    })
-  },
-
-  setEmbedSuccess({
-    id,
-    updates,
-  }: {
-    id: string
-    updates: {
-      id: string
-      embedding: Embedding
-    }[]
-  }) {
-    return prisma.release.update({
-      where: { id },
-      data: {
-        videos: {
-          updateMany: updates.map(({ id, embedding }) => ({
-            where: { id },
-            data: { embedding },
-          })),
-        },
-        embeddingStatus: 'success',
-      },
-    })
-  },
-
-  setEmbedFailed(id: string) {
-    return prisma.release.update({
-      where: { id },
-      data: {
-        embeddingStatus: 'failed',
       },
     })
   },

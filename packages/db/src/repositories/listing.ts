@@ -4,7 +4,7 @@ import { toStatusDB, toConditionDB, toSleeveConditionDB } from '../mapper'
 
 export const listingRepositry = {
   async addRelease({ id, release }: { id: string; release: Release }) {
-    const listing = await prisma.want.update({
+    const listing = await prisma.listing.update({
       where: { id },
       data: {
         release: {
@@ -65,31 +65,68 @@ export const listingRepositry = {
     })
   },
 
-  createMany({
+  async upsertMany({
     searchId,
     listings,
   }: {
     searchId: string
     listings: Listing[]
   }) {
-    return prisma.listing.createManyAndReturn({
-      data: listings.map((listing) => ({
-        externalId: listing.id,
-        status: toStatusDB(listing.status),
-        price: listing.price,
-        allowOffers: listing.allow_offers,
-        condition: toConditionDB(listing.condition),
-        sleeveCondition: toSleeveConditionDB(listing.sleeve_condition),
-        shipsFrom: listing.ships_from,
-        comments: listing.comments,
-        uri: listing.uri,
-        resourceUrl: listing.resource_url,
-        searchId,
-      })),
+    const listingsDB = []
+
+    for (const listing of listings) {
+      const listingDB = await prisma.listing.upsert({
+        where: { externalId: listing.id },
+        create: {
+          externalId: listing.id,
+          status: toStatusDB(listing.status),
+          allowOffers: listing.allow_offers,
+          condition: toConditionDB(listing.condition),
+          sleeveCondition: toSleeveConditionDB(listing.sleeve_condition),
+          shipsFrom: listing.ships_from,
+          comments: listing.comments,
+          uri: listing.uri,
+          resourceUrl: listing.resource_url,
+          price: {
+            create: listing.price,
+          },
+          search: { connect: { id: searchId } },
+        },
+        update: {
+          status: toStatusDB(listing.status),
+          allowOffers: listing.allow_offers,
+          condition: toConditionDB(listing.condition),
+          sleeveCondition: toSleeveConditionDB(listing.sleeve_condition),
+          price: {
+            update: listing.price,
+          },
+          search: { connect: { id: searchId } },
+        },
+        select: { id: true, externalId: true },
+      })
+
+      listingsDB.push(listingDB)
+    }
+
+    return listingsDB
+  },
+
+  getManyWithEmbeddings(ids: string[]) {
+    return prisma.listing.findMany({
+      where: { id: { in: ids } },
       select: {
         id: true,
+        release: {
+          select: {
+            videos: {
+              where: {
+                status: 'SUCCESS',
+              },
+              select: { embedding: true },
+            },
+          },
+        },
       },
-      skipDuplicates: true,
     })
   },
 }

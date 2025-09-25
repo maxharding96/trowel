@@ -18,7 +18,7 @@ datasource db {
 
 model Artist {
   id          String    @id @default(cuid())
-  externalId  Int       @unique
+  externalId  BigInt    @unique
   name        String
   resourceUrl String
   releases    Release[]
@@ -26,7 +26,7 @@ model Artist {
 
 model Track {
   releaseId String
-  release   Release @relation(fields: [releaseId], references: [id])
+  release   Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
   duration  String
   position  String
   title     String
@@ -34,50 +34,50 @@ model Track {
   @@id([releaseId, position])
 }
 
-enum EmbeddingStatus {
-  pending
-  success
-  failed
+enum Status {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
 }
 
 model Video {
   id          String  @id @default(cuid())
   releaseId   String
-  release     Release @relation(fields: [releaseId], references: [id])
+  release     Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
   description String?
   duration    Int
   embed       Boolean
   title       String
   uri         String
-  embedding   Json?
+  status      Status  @default(PENDING)
+  embedding   Float[]
 }
 
 model Release {
-  id              String          @id @default(cuid())
-  externalId      Int             @unique
-  title           String
-  artists         Artist[]
-  thumb           String
-  country         String
-  genres          String[]
-  lowestPrice     Float?
-  numForSale      Int
-  resourceUrl     String
-  status          String
-  styles          String[]
-  tracklist       Track[]
-  uri             String
-  videos          Video[]
-  year            Int
-  embeddingStatus EmbeddingStatus @default(pending)
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  Want      Want[]
-  Listing   Listing[]
+  id          String    @id @default(cuid())
+  externalId  BigInt    @unique
+  title       String
+  artists     Artist[]
+  thumb       String
+  country     String
+  genres      String[]
+  lowestPrice Float?
+  numForSale  Int
+  resourceUrl String
+  status      String
+  styles      String[]
+  tracklist   Track[]
+  uri         String
+  videos      Video[]
+  year        Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  want        Want[]
+  listing     Listing[]
 }
 
-enum Status {
+enum SaleStatus {
   ForSale
   Draft
 }
@@ -124,26 +124,26 @@ enum SleeveCondition {
 
 model Price {
   id        String   @id @default(cuid())
-  amount    Float
   currency  Currency
+  value     Float
   listingId String   @unique
-  Listing   Listing  @relation(fields: [listingId], references: [id])
+  Listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
 
 model Want {
-  id          String   @id @default(cuid())
-  externalId  Int      @unique
+  id          String       @id @default(cuid())
+  externalId  BigInt       @unique
   resourceUrl String
   releaseId   String?
-  release     Release? @relation(fields: [releaseId], references: [id])
-  searchId    String
-  search      Search   @relation(fields: [searchId], references: [id])
+  release     Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  search      Search[]
+  similarity  Similarity[]
 }
 
 model Listing {
   id              String          @id @default(cuid())
-  externalId      Int             @unique
-  status          Status
+  externalId      BigInt          @unique
+  status          SaleStatus
   price           Price?
   allowOffers     Boolean
   condition       Condition
@@ -152,14 +152,28 @@ model Listing {
   uri             String
   comments        String
   releaseId       String?
-  release         Release?        @relation(fields: [releaseId], references: [id])
+  release         Release?        @relation(fields: [releaseId], references: [id], onDelete: SetNull)
   resourceUrl     String
-  searchId        String
-  search          Search          @relation(fields: [searchId], references: [id])
+  similarities    Similarity[]
+  search          Search[]
+}
+
+model Similarity {
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  wantId    String
+  want      Want    @relation(fields: [wantId], references: [id], onDelete: Cascade)
+  searchId  String
+  search    Search  @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  score     Float
+
+  @@id([listingId, wantId])
 }
 
 model Search {
-  id       String    @id @default(cuid())
-  wantlist Want[]
-  listings Listing[]
+  id           String       @id @default(cuid())
+  wantlist     Want[]
+  listings     Listing[]
+  similarities Similarity[]
+  status       Status       @default(PENDING)
 }

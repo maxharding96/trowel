@@ -1,5 +1,6 @@
 from essentia.standard import MonoLoader, TensorflowPredictEffnetDiscogs
 from models import Embedding
+import numpy as np
 
 
 class Embedder:
@@ -23,4 +24,4 @@ class Embedder:
 
         data = self._model(audio)
 
-        return data
+        return np.mean(data, axis=0)

@@ -2,16 +2,27 @@ import prisma from '../client'
 import type { Release, Want } from '@trowel/types'
 
 export const wantRepositry = {
-  createMany({ searchId, wants }: { searchId: string; wants: Want[] }) {
-    return prisma.want.createManyAndReturn({
-      data: wants.map((want) => ({
-        externalId: want.id,
-        resourceUrl: want.resource_url,
-        searchId,
-      })),
-      select: { id: true },
-      skipDuplicates: true,
-    })
+  async upsertMany({ searchId, wants }: { searchId: string; wants: Want[] }) {
+    const wantsDB = []
+
+    for (const want of wants) {
+      const wantDB = await prisma.want.upsert({
+        where: { externalId: want.id },
+        create: {
+          externalId: want.id,
+          resourceUrl: want.resource_url,
+          search: { connect: { id: searchId } },
+        },
+        update: {
+          search: { connect: { id: searchId } },
+        },
+        select: { id: true },
+      })
+
+      wantsDB.push(wantDB)
+    }
+
+    return wantsDB
   },
 
   async addRelease({ id, release }: { id: string; release: Release }) {
@@ -71,6 +82,25 @@ export const wantRepositry = {
       data: {
         release: {
           connect: { id: releaseId },
+        },
+      },
+    })
+  },
+
+  getManyWithEmbeddings(ids: string[]) {
+    return prisma.want.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        release: {
+          select: {
+            videos: {
+              where: {
+                status: 'SUCCESS',
+              },
+              select: { embedding: true },
+            },
+          },
         },
       },
     })

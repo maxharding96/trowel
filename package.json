@@ -16,6 +16,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "asyncio": "^0.0.2",
     "prettier": "3.6.2"
   }
 }

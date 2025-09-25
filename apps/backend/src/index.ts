@@ -1,7 +1,8 @@
 import { Elysia, t } from 'elysia'
 import { cors } from '@elysiajs/cors'
 import { searchRepositry } from '@trowel/db'
-import { addGetListingsJob, addGetWantlistJob } from './queues/discogs'
+import { addSearchJob } from './queues/search'
+import { addSimilarityJob } from './queues/similarity'
 
 const app = new Elysia()
   .use(cors())
@@ -10,8 +11,10 @@ const app = new Elysia()
     async ({ body }) => {
       const search = await searchRepositry.create()
 
-      await addGetListingsJob(search.id, body.listings)
-      await addGetWantlistJob(search.id, body.wantlist)
+      await addSearchJob({
+        searchId: search.id,
+        ...body,
+      })
 
       return search
     },
@@ -23,16 +26,33 @@ const app = new Elysia()
     }
   )
 
-  .get('/wantlist/:searchId', async ({ params }) => {
-    const wantlist = await searchRepositry.getWantlist(params.searchId)
+  .get('/search/:searchId', async ({ params }) => {
+    const { searchId } = params
 
-    return wantlist
-  })
+    const [
+      wantlistCount,
+      listingsCount,
+      embeddedWantlistCount,
+      embeddedListingsCount,
+    ] = await searchRepositry.getCounts(searchId)
 
-  .get('/listings/:searchId', async ({ params }) => {
-    const listings = await searchRepositry.getListings(params.searchId)
+    const similarities = await searchRepositry.getBestSimilarities({
+      searchId,
+      minScore: 0.9,
+    })
 
-    return listings
+    //TODO very hacky
+    void addSimilarityJob({ searchId })
+
+    return {
+      similarities,
+      counts: {
+        wantlist: wantlistCount,
+        listings: listingsCount,
+        embeddedWantlist: embeddedWantlistCount,
+        embeddedListings: embeddedListingsCount,
+      },
+    }
   })
 
   .listen(3000)

@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [project.scripts]
-dev = "uvicorn main:app --reload"
+serve = "uvicorn main:app --reload"

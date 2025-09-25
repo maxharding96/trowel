@@ -1,10 +1,11 @@
 from fastapi import FastAPI
-from models import EmbedInput, EmbedOutput
+from models import EmbedInput, EmbedOutput, Embedding
 from embedder import Embedder
-from concurrent.futures import ThreadPoolExecutor
 import os
 import yt_dlp
 from typing import Optional
+import asyncio
+from fastapi import HTTPException
 
 ydl_opt = {
     "noplaylist": True,
@@ -17,40 +18,29 @@ embdedder = Embedder(model_path="weights/discogs-effnet-bs64-1.pb")
 
 def download(url: str) -> Optional[str]:
     with yt_dlp.YoutubeDL(ydl_opt) as ydl:
-        try:
-            info = ydl.extract_info(url, download=True)
-            return "tmp/" + info["id"] + "." + info["ext"]
-        except Exception as e:
-            print(f"Error downloading {url}: {e}")
+        info = ydl.extract_info(url, download=True)
+        return "tmp/" + info["id"] + "." + info["ext"]
 
 
-def process(url: str) -> Optional[str]:
-    path = download(url)
-
-    if not path:
-        return None
-
-    embedding = embdedder.process(audio_path=path)
+def process(url: str) -> Optional[Embedding]:
+    path = None
     try:
-        os.remove(path)
+        path = download(url)
+        return embdedder.process(audio_path=path)
     except Exception as e:
-        print(f"Error deleting file {path}: {e}")
-    return embedding
-
-
-def process_batch(urls: list[str]) -> list[Optional[str]]:
-    max_workers = min(4, len(urls))  # Limit to 4 or number of URLs
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(process, url) for url in urls]
-
-    results = [future.result() for future in futures]
-
-    return results
+        print(f"Error processing {url}: {e}")
+        return None
+    finally:
+        if path and os.path.exists(path):
+            os.remove(path)
 
 
 @app.post("/embed", response_model=EmbedOutput)
 async def embed(input: EmbedInput):
-    embeddings = process_batch(input.urls)
+    loop = asyncio.get_event_loop()
+    embedding = await loop.run_in_executor(None, process, input.uri)
 
-    return EmbedOutput(embeddings=embeddings)
+    if embedding is None:
+        raise HTTPException(status_code=422, detail="Failed to embed video")
+
+    return EmbedOutput(id=input.id, embedding=embedding)

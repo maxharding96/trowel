@@ -1,27 +1,19 @@
 import { z } from 'zod'
 
-export const Embedding = z.float32().array().array()
+export const Embedding = z.float32().array()
 
 export type Embedding = z.infer<typeof Embedding>
 
-export const VideoInput = z.object({
+export const EmbedInputSchema = z.object({
   id: z.string(),
   uri: z.string(),
-})
-
-export const VideoOutput = z.object({
-  id: z.string(),
-  embedding: Embedding,
-})
-
-export const EmbedInputSchema = z.object({
-  videos: VideoInput.array(),
 })
 
 export type EmbedInput = z.infer<typeof EmbedInputSchema>
 
 export const EmbedOutputSchema = z.object({
-  videos: VideoOutput.array(),
+  id: z.string(),
+  embedding: Embedding,
 })
 
 export type EmbedOutput = z.infer<typeof EmbedOutputSchema>

@@ -1,16 +1,16 @@
 import type { Status, Condition, SleeveCondition } from '@trowel/types'
 import {
-  Status as StatusDB,
+  SaleStatus,
   Condition as ConditionDB,
   SleeveCondition as SleeveConditionDB,
 } from '../generated/prisma'
 
-export function toStatusDB(status: Status): StatusDB {
+export function toStatusDB(status: Status): SaleStatus {
   switch (status) {
     case 'For Sale':
-      return StatusDB.ForSale
+      return SaleStatus.ForSale
     case 'Draft':
-      return StatusDB.Draft
+      return SaleStatus.Draft
   }
 }
 
