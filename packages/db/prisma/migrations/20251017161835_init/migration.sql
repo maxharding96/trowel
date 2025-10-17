@@ -43,7 +43,7 @@ CREATE TABLE "public"."Video" (
     "title" TEXT NOT NULL,
     "uri" TEXT NOT NULL,
     "status" "public"."Status" NOT NULL DEFAULT 'PENDING',
-    "embedding" DOUBLE PRECISION[],
+    "embedding" JSONB,
 
     CONSTRAINT "Video_pkey" PRIMARY KEY ("id")
 );
@@ -108,12 +108,12 @@ CREATE TABLE "public"."Listing" (
 
 -- CreateTable
 CREATE TABLE "public"."Similarity" (
-    "listingId" TEXT NOT NULL,
-    "wantId" TEXT NOT NULL,
+    "listingVideoId" TEXT NOT NULL,
+    "wantVideoId" TEXT NOT NULL,
     "searchId" TEXT NOT NULL,
     "score" DOUBLE PRECISION NOT NULL,
 
-    CONSTRAINT "Similarity_pkey" PRIMARY KEY ("listingId","wantId")
+    CONSTRAINT "Similarity_pkey" PRIMARY KEY ("listingVideoId","wantVideoId")
 );
 
 -- CreateTable
@@ -188,10 +188,10 @@ ALTER TABLE "public"."Want" ADD CONSTRAINT "Want_releaseId_fkey" FOREIGN KEY ("r
 ALTER TABLE "public"."Listing" ADD CONSTRAINT "Listing_releaseId_fkey" FOREIGN KEY ("releaseId") REFERENCES "public"."Release"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Similarity" ADD CONSTRAINT "Similarity_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "public"."Listing"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Similarity" ADD CONSTRAINT "Similarity_listingVideoId_fkey" FOREIGN KEY ("listingVideoId") REFERENCES "public"."Video"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Similarity" ADD CONSTRAINT "Similarity_wantId_fkey" FOREIGN KEY ("wantId") REFERENCES "public"."Want"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Similarity" ADD CONSTRAINT "Similarity_wantVideoId_fkey" FOREIGN KEY ("wantVideoId") REFERENCES "public"."Video"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Similarity" ADD CONSTRAINT "Similarity_searchId_fkey" FOREIGN KEY ("searchId") REFERENCES "public"."Search"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -2,7 +2,6 @@ import { Elysia, t } from 'elysia'
 import { cors } from '@elysiajs/cors'
 import { searchRepositry } from '@trowel/db'
 import { addSearchJob } from './queues/search'
-import { addSimilarityJob } from './queues/similarity'
 
 const app = new Elysia()
   .use(cors())
@@ -40,9 +39,6 @@ const app = new Elysia()
       searchId,
       minScore: 0.9,
     })
-
-    //TODO very hacky
-    void addSimilarityJob({ searchId })
 
     return {
       similarities,

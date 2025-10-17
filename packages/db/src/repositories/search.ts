@@ -126,43 +126,48 @@ export const searchRepositry = {
       },
       select: {
         score: true,
-        listing: {
+        listingVideo: {
           select: {
-            release: {
-              select: {
-                title: true,
-                videos: {
-                  select: {
-                    uri: true,
-                  },
-                },
-              },
-            },
+            title: true,
+            uri: true,
           },
         },
-        want: {
+        wantVideo: {
           select: {
-            release: {
-              select: {
-                title: true,
-                videos: {
-                  select: {
-                    uri: true,
-                  },
-                },
-              },
-            },
+            title: true,
+            uri: true,
           },
         },
       },
     })
   },
+
   async getMissingSimilarities(searchId: string) {
     const searchData = await prisma.search.findUnique({
       where: { id: searchId },
       select: {
-        listings: { select: { id: true } },
-        wantlist: { select: { id: true } },
+        listings: {
+          select: {
+            release: {
+              select: {
+                videos: {
+                  select: { id: true },
+                },
+              },
+            },
+          },
+        },
+        wantlist: {
+          select: {
+            release: {
+              select: {
+                videos: {
+                  select: { id: true },
+                },
+              },
+            },
+          },
+        },
       },
     })
 
@@ -170,60 +175,90 @@ export const searchRepositry = {
       return []
     }
 
-    // 2. Get all existing similarities for this search.
+    // Get all existing similarities for this search.
     const existingSimilarities = await prisma.similarity.findMany({
       where: {
         searchId,
-        listing: {
-          release: {
-            videos: {
-              every: {
-                status: {
-                  in: ['SUCCESS', 'FAILED'],
-                },
-              },
-            },
-          },
-        },
-        want: {
-          release: {
-            videos: {
-              every: {
-                status: {
-                  in: ['SUCCESS', 'FAILED'],
-                },
-              },
-            },
-          },
-        },
       },
       select: {
-        listingId: true,
-        wantId: true,
+        listingVideoId: true,
+        wantVideoId: true,
       },
     })
 
     // For efficient lookup, convert the existing pairs into a Set of unique strings.
     const existingPairs = new Set(
-      existingSimilarities.map((sim) => `${sim.listingId}:${sim.wantId}`)
+      existingSimilarities.map(
+        (sim) => `${sim.listingVideoId}:${sim.wantVideoId}`
+      )
     )
 
     const missingSimilarities = []
 
-    // 3. Generate all possible pairs (Cartesian product) and find the missing ones.
-    for (const listing of searchData.listings) {
-      for (const want of searchData.wantlist) {
-        const pairKey = `${listing.id}:${want.id}`
+    const listingVideoIds = new Set(
+      searchData.listings.flatMap(
+        (listing) => listing.release?.videos.map((video) => video.id) ?? []
+      )
+    )
+
+    const wantlistVideoIds = new Set(
+      searchData.wantlist.flatMap(
+        (listing) => listing.release?.videos.map((video) => video.id) ?? []
+      )
+    )
+
+    // Generate all possible pairs and find the missing ones.
+    for (const l of listingVideoIds) {
+      for (const w of wantlistVideoIds) {
+        const pairKey = `${l}:${w}`
         // If the generated pair does NOT exist in our Set, it's a missing one.
         if (!existingPairs.has(pairKey)) {
           missingSimilarities.push({
-            listingId: listing.id,
-            wantId: want.id,
+            listingVideoId: l,
+            wantVideoId: w,
           })
         }
       }
     }
 
     return missingSimilarities
+  },
+
+  getAllEmbeddedVideosInWantlist(id: string) {
+    return prisma.video.findMany({
+      where: {
+        release: {
+          wants: {
+            some: {
+              search: {
+                some: {
+                  id,
+                },
+              },
+            },
+          },
+        },
+        status: 'SUCCESS',
+      },
+    })
+  },
+
+  getAllEmbeddedVideosInListings(id: string) {
+    return prisma.video.findMany({
+      where: {
+        release: {
+          listings: {
+            some: {
+              search: {
+                some: {
+                  id,
+                },
+              },
+            },
+          },
+        },
+        status: 'SUCCESS',
+      },
+    })
   },
 }

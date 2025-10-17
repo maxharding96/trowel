@@ -34,8 +34,9 @@ export default function Dig() {
       <ul>
         {data?.similarities.map((sim, i) => (
           <li key={i}>
-            Listing: {sim.listing.release?.title}, Want ID:{' '}
-            {sim.want.release?.title}, Score: {sim.score.toFixed(4)}
+            <a href={sim.listingVideo.uri}>Listing: {sim.listingVideo.title}</a>
+            <a href={sim.wantVideo.uri}>Want: {sim.wantVideo.title}</a>
+            <p>Score: {sim.score.toFixed(4)}</p>
           </li>
         ))}
       </ul>

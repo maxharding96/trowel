@@ -27,18 +27,38 @@ export const videoRepositry = {
       },
     })
   },
+
+  async getEmbeddingOrThrow(id: string) {
+    const video = await prisma.video.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true,
+        embedding: true,
+      },
+    })
+
+    switch (video.status) {
+      case 'PENDING':
+      case 'PROCESSING': {
+        throw new Error('Video not finished processing')
+      }
+      case 'FAILED':
+        return null
+      case 'SUCCESS':
+        if (!video.embedding) {
+          throw new Error('Video embedding is missing')
+        }
+
+        return video.embedding as Embedding
+    }
+  },
+
   getManyWithEmbeddings(ids: string[]) {
-    return prisma.listing.findMany({
+    return prisma.video.findMany({
       where: { id: { in: ids } },
       select: {
         id: true,
-        release: {
-          select: {
-            videos: {
-              select: { embedding: true },
-            },
-          },
-        },
+        embedding: true,
       },
     })
   },

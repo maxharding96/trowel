@@ -111,21 +111,19 @@ export const listingRepositry = {
     return listingsDB
   },
 
-  getManyWithEmbeddings(ids: string[]) {
-    return prisma.listing.findMany({
-      where: { id: { in: ids } },
-      select: {
-        id: true,
+  getAllEmbeddedVideos(id: string) {
+    return prisma.video.findMany({
+      where: {
         release: {
-          select: {
-            videos: {
-              where: {
-                status: 'SUCCESS',
+          listings: {
+            some: {
+              id: {
+                equals: id,
               },
-              select: { embedding: true },
             },
           },
         },
+        status: 'SUCCESS',
       },
     })
   },

@@ -1,16 +1,13 @@
 import prisma from '../client'
 
 export const similarityRepositry = {
-  createMany: (
-    data: {
-      listingId: string
-      wantId: string
-      score: number
-      searchId: string
-    }[]
-  ) =>
-    prisma.similarity.createMany({
+  create: (data: {
+    listingVideoId: string
+    wantVideoId: string
+    score: number
+    searchId: string
+  }) =>
+    prisma.similarity.create({
       data,
-      skipDuplicates: true,
     }),
 }

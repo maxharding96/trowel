@@ -42,16 +42,18 @@ enum Status {
 }
 
 model Video {
-  id          String  @id @default(cuid())
-  releaseId   String
-  release     Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
-  description String?
-  duration    Int
-  embed       Boolean
-  title       String
-  uri         String
-  status      Status  @default(PENDING)
-  embedding   Float[]
+  id                   String       @id @default(cuid())
+  releaseId            String
+  release              Release      @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  description          String?
+  duration             Int
+  embed                Boolean
+  title                String
+  uri                  String
+  status               Status       @default(PENDING)
+  embedding            Json?
+  similarityToListings Similarity[] @relation(name: "SimilarityToListing")
+  similarityToWantlist Similarity[] @relation(name: "SimilarityToWantlist")
 }
 
 model Release {
@@ -73,8 +75,8 @@ model Release {
   year        Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  want        Want[]
-  listing     Listing[]
+  wants       Want[]
+  listings    Listing[]
 }
 
 enum SaleStatus {
@@ -131,13 +133,12 @@ model Price {
 }
 
 model Want {
-  id          String       @id @default(cuid())
-  externalId  BigInt       @unique
+  id          String   @id @default(cuid())
+  externalId  BigInt   @unique
   resourceUrl String
   releaseId   String?
-  release     Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  release     Release? @relation(fields: [releaseId], references: [id], onDelete: SetNull)
   search      Search[]
-  similarity  Similarity[]
 }
 
 model Listing {
@@ -154,20 +155,19 @@ model Listing {
   releaseId       String?
   release         Release?        @relation(fields: [releaseId], references: [id], onDelete: SetNull)
   resourceUrl     String
-  similarities    Similarity[]
   search          Search[]
 }
 
 model Similarity {
-  listingId String
-  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  wantId    String
-  want      Want    @relation(fields: [wantId], references: [id], onDelete: Cascade)
-  searchId  String
-  search    Search  @relation(fields: [searchId], references: [id], onDelete: Cascade)
-  score     Float
+  listingVideoId String
+  listingVideo   Video  @relation("SimilarityToListing", fields: [listingVideoId], references: [id], onDelete: Cascade)
+  wantVideoId    String
+  wantVideo      Video  @relation("SimilarityToWantlist", fields: [wantVideoId], references: [id], onDelete: Cascade)
+  searchId       String
+  search         Search @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  score          Float
 
-  @@id([listingId, wantId])
+  @@id([listingVideoId, wantVideoId])
 }
 
 model Search {

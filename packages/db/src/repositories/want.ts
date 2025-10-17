@@ -86,23 +86,4 @@ export const wantRepositry = {
       },
     })
   },
-
-  getManyWithEmbeddings(ids: string[]) {
-    return prisma.want.findMany({
-      where: { id: { in: ids } },
-      select: {
-        id: true,
-        release: {
-          select: {
-            videos: {
-              where: {
-                status: 'SUCCESS',
-              },
-              select: { embedding: true },
-            },
-          },
-        },
-      },
-    })
-  },
 }

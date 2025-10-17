@@ -8,6 +8,7 @@ import { zip } from '../utils/common'
 
 const getListingReleaseJobSchema = z.object({
   type: z.literal('get-listing-release'),
+  searchId: z.string(),
   releaseId: z.number(),
   listingId: z.string(),
 })
@@ -16,6 +17,7 @@ type GetListingReleaseJob = z.infer<typeof getListingReleaseJobSchema>
 
 const getWantReleaseJobSchema = z.object({
   type: z.literal('get-wantlist-release'),
+  searchId: z.string(),
   releaseId: z.number(),
   wantId: z.string(),
 })
@@ -62,7 +64,7 @@ const worker = new Worker<JobInput>(
   async ({ data }) => {
     switch (data.type) {
       case 'get-listing-release': {
-        const { listingId, releaseId } = data
+        const { searchId, listingId, releaseId } = data
 
         const release = await discogs.getRelease({
           releaseId,
@@ -74,13 +76,18 @@ const worker = new Worker<JobInput>(
         })
 
         for (const video of releaseDB.videos) {
-          await addEmbeddingJob(video)
+          await addEmbeddingJob({
+            type: 'listing',
+            searchId,
+            id: video.id,
+            uri: video.uri,
+          })
         }
 
         break
       }
       case 'get-wantlist-release': {
-        const { wantId, releaseId } = data
+        const { searchId, wantId, releaseId } = data
 
         const release = await discogs.getRelease({
           releaseId,
@@ -92,7 +99,12 @@ const worker = new Worker<JobInput>(
         })
 
         for (const video of releaseDB.videos) {
-          await addEmbeddingJob(video)
+          await addEmbeddingJob({
+            type: 'want',
+            searchId,
+            id: video.id,
+            uri: video.uri,
+          })
         }
 
         break
@@ -118,6 +130,7 @@ const worker = new Worker<JobInput>(
           if (!releaseDB) {
             // If not, add job to fetch it
             await addGetListingReleaseJob({
+              searchId,
               listingId: listingDB.id,
               releaseId,
             })
@@ -131,7 +144,12 @@ const worker = new Worker<JobInput>(
             for (const video of releaseDB.videos) {
               // If embedding previously failed, try again
               if (video.status === 'FAILED') {
-                await addEmbeddingJob(video)
+                await addEmbeddingJob({
+                  type: 'listing',
+                  searchId,
+                  id: video.id,
+                  uri: video.uri,
+                })
               }
             }
           }
@@ -159,6 +177,7 @@ const worker = new Worker<JobInput>(
           if (!releaseDB) {
             // If not, add job to fetch it
             await addGetWantReleaseJob({
+              searchId,
               wantId: wantDB.id,
               releaseId,
             })
@@ -172,7 +191,12 @@ const worker = new Worker<JobInput>(
             for (const video of releaseDB.videos) {
               // If embedding previously failed, try again
               if (video.status === 'FAILED') {
-                await addEmbeddingJob(video)
+                await addEmbeddingJob({
+                  type: 'want',
+                  searchId,
+                  id: video.id,
+                  uri: video.uri,
+                })
               }
             }
           }
